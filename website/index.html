@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>eAI Control Panel</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div><p class="eyebrow">META-ORCHESTRATOR</p><h1>eAI <span>Workspace</span></h1></div>
+        <span class="badge"><i></i> Renderer online</span>
+      </header>
+
+      <section class="panel connection">
+        <div><h2>Private broker</h2><p>Backend-Adresse dieses Codespace eingeben. Keine Secrets im Browser speichern.</p></div>
+        <label>API origin<input id="api-origin" type="url" placeholder="https://…-3000.app.github.dev" autocomplete="url"></label>
+      </section>
+
+      <section class="grid">
+        <section class="panel" id="auth-panel">
+          <div class="section-title"><div><p class="eyebrow">IDENTITY</p><h2>Account</h2></div></div>
+          <form id="auth-form">
+            <label>Benutzername<input id="username" minlength="3" maxlength="32" required autocomplete="username"></label>
+            <label>Passwort<input id="password" type="password" minlength="12" maxlength="128" required autocomplete="new-password"></label>
+            <label id="genesis-field">Genesis-Passwort <span>(nur für RFOF-NETWORK)</span><input id="genesis-password" type="password" autocomplete="off"></label>
+            <div class="actions"><button type="submit" data-mode="register">Registrieren</button><button type="button" class="secondary" id="login">Anmelden</button></div>
+          </form>
+          <p id="auth-message" class="message" role="status"></p>
+        </section>
+
+        <section class="panel" id="account-panel">
+          <div class="section-title"><div><p class="eyebrow">SESSION</p><h2>Dashboard</h2></div><button id="logout" class="secondary" hidden>Abmelden</button></div>
+          <p id="account-state" class="muted">Nicht angemeldet. Sitzungen bleiben nur im Arbeitsspeicher dieser Seite.</p>
+          <dl id="account-details" hidden><dt>Benutzer</dt><dd id="account-name"></dd><dt>Token-Guthaben</dt><dd id="account-tokens"></dd></dl>
+        </section>
+      </section>
+
+      <section class="panel terminal">
+        <div class="section-title"><div><p class="eyebrow">READ-ONLY CONNECTOR</p><h2>Terminal</h2></div><span class="badge">Restricted</span></div>
+        <p class="muted">Nur festgelegte, lesende Status- und Versionsabfragen sind verfügbar. Keine Shell, PowerShell oder Systemadministration.</p>
+        <form id="terminal-form">
+          <label>Zielsystem<select id="system-type"><option value="git">Git</option><option value="dev">Developer tools</option></select></label>
+          <label>Befehl<select id="command"></select></label>
+          <button type="submit">Ausführen</button>
+        </form>
+        <pre id="terminal-output" aria-live="polite">Warte auf Anmeldung…</pre>
+      </section>
+
+      <footer>Public UI · No credentials · Backend stays private</footer>
+    </main>
+    <script src="app.js" defer></script>
+  </body>
+</html>

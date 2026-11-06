@@ -1,0 +1,17 @@
+# Secrets and local state
+digital_twin/vault/*
+!digital_twin/vault/.gitkeep
+digital_twin/.env
+.env
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+
+# Dependencies, generated output, and local editor files
+node_modules/
+**/node_modules/
+coverage/
+dist/
+.DS_Store
+.vscode/
