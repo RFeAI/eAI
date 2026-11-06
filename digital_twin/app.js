@@ -6,9 +6,14 @@ const { createUserModel } = require('./models/User');
 const { createAuthService, publicUser } = require('./services/authService');
 const { createRouterService } = require('./services/routerService');
 const { createWorkspaceService } = require('./services/workspaceService');
+const { createTokenService } = require('./services/tokenService');
+const { createExtensionService } = require('./services/extensionService');
+const { createTenantResolver } = require('./middlewares/tenantResolver');
+const { validateCommand } = require('./utils/commandWhitelist');
 
-function createApp({ db, config }) {
+function createApp({ db, config, tokens = createTokenService(db), extensions }) {
   const app = express();
+  extensions ||= createExtensionService({ db, workspaceRoot: config.workspaceRoot, tokens });
   const users = createUserModel(db);
   const auth = createAuthService({
     users,
@@ -61,26 +66,64 @@ function createApp({ db, config }) {
   });
   app.get('/api/account', (req, res) => {
     const user = users.findByUsername(req.identity.username);
-    if (!user) return res.status(401).json({ error: 'Account no longer exists.' });
+    if (!user || String(user.id) !== req.identity.sub || !user.is_registered) {
+      return res.status(401).json({ error: 'Account no longer exists.' });
+    }
     return res.json({ user: publicUser(user) });
   });
   const workspaceLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: 'draft-7', legacyHeaders: false });
   const terminalLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false });
-  app.get('/api/workspace/tree', workspaceLimit, async (req, res, next) => {
+  const extensionLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false });
+  const resolveTenant = createTenantResolver({ extensions, tokens });
+
+  app.post('/api/extensions', extensionLimit, async (req, res, next) => {
+    try {
+      const result = await extensions.spawnUserWorkspace(req.identity.sub, { create: true });
+      res.status(result.created ? 201 : 200).json({
+        created: result.created,
+        tokenBalance: tokens.getBalance(req.identity.sub),
+      });
+    } catch (error) { next(error); }
+  });
+  app.get('/api/extensions', (req, res, next) => {
+    try { res.json({ active: extensions.hasWorkspace(req.identity.sub) }); } catch (error) { next(error); }
+  });
+  app.post('/api/chat', (req, res, next) => {
+    try {
+      if (tokens.getBalance(req.identity.sub) < 1) {
+        return res.status(402).json({ error: 'Insufficient token balance.' });
+      }
+      return res.status(501).json({ error: 'LLM connector is not configured; no tokens were charged.' });
+    } catch (error) { return next(error); }
+  });
+  app.use('/api/workspace', workspaceLimit);
+  app.use('/api/terminal', terminalLimit, (req, _res, next) => {
+    try { tokens.getBalance(req.identity.sub); next(); } catch (error) { next(error); }
+  });
+  app.use((req, res, next) => {
+    const allowedRoutes = new Set([
+      'GET /api/workspace/tree', 'GET /api/workspace/file',
+      'POST /api/workspace/file', 'POST /api/workspace/folder',
+      'POST /api/workspace/delete', 'POST /api/terminal',
+    ]);
+    if (allowedRoutes.has(`${req.method} ${req.path}`)) return resolveTenant(req, res, next);
+    return next();
+  });
+  app.get('/api/workspace/tree', async (req, res, next) => {
     try {
       res.json({ entries: await workspace.list(req.identity.sub, req.query.path || '') });
     } catch (error) {
       next(error);
     }
   });
-  app.get('/api/workspace/file', workspaceLimit, async (req, res, next) => {
+  app.get('/api/workspace/file', async (req, res, next) => {
     try {
       res.json({ content: await workspace.read(req.identity.sub, req.query.path) });
     } catch (error) {
       next(error);
     }
   });
-  app.post('/api/workspace/file', workspaceLimit, async (req, res, next) => {
+  app.post('/api/workspace/file', async (req, res, next) => {
     try {
       const { path: relativePath, content } = req.body || {};
       await workspace.write(req.identity.sub, relativePath, content);
@@ -89,7 +132,7 @@ function createApp({ db, config }) {
       next(error);
     }
   });
-  app.post('/api/workspace/folder', workspaceLimit, async (req, res, next) => {
+  app.post('/api/workspace/folder', async (req, res, next) => {
     try {
       await workspace.createFolder(req.identity.sub, req.body?.path);
       res.status(201).json({ created: true });
@@ -97,7 +140,7 @@ function createApp({ db, config }) {
       next(error);
     }
   });
-  app.post('/api/workspace/delete', workspaceLimit, async (req, res, next) => {
+  app.post('/api/workspace/delete', async (req, res, next) => {
     try {
       await workspace.remove(req.identity.sub, req.body?.path);
       res.json({ deleted: true });
@@ -105,10 +148,14 @@ function createApp({ db, config }) {
       next(error);
     }
   });
-  app.post('/api/terminal', terminalLimit, async (req, res, next) => {
+  app.post('/api/terminal', async (req, res, next) => {
     try {
       const { systemType, command } = req.body || {};
-      res.json({ output: await router.routeCommand(req.identity.sub, systemType, command) });
+      const output = await router.routeCommand(req.identity.sub, systemType, command);
+      const tokenBalance = validateCommand(systemType, command)
+        ? tokens.mintTokens(req.identity.sub, 'terminal')
+        : tokens.getBalance(req.identity.sub);
+      res.json({ output, tokenBalance });
     } catch (error) {
       next(error);
     }

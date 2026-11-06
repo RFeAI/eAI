@@ -14,6 +14,28 @@
         <span class="badge"><i></i> Renderer online</span>
       </header>
 
+      <section class="panel landing" id="guest-panel">
+        <div class="section-title">
+          <div><p class="eyebrow">GAST-MODUS</p><h2>Anmelde-Konsole</h2></div>
+          <span class="badge">Nur Anmeldung</span>
+        </div>
+        <p class="muted">Ohne Anmeldung kann diese Konsole nur verbinden, registrieren und anmelden. Tippe <code>help</code>.</p>
+        <div id="guest-log" class="console-log" role="log" aria-live="polite"></div>
+        <form id="guest-form" class="console-input" autocomplete="off">
+          <span>eai&gt;</span>
+          <input id="guest-input" type="text" maxlength="300" autocapitalize="none" spellcheck="false" aria-label="Konsoleneingabe">
+          <button type="submit">Senden</button>
+        </form>
+        <ul class="login-options" aria-label="Anmeldemöglichkeiten">
+          <li class="active"><strong>Benutzername + Passwort</strong><span>verfügbar (Konsole oder Formular)</span></li>
+          <li><strong>GitHub</strong><span>noch nicht eingerichtet</span></li>
+          <li><strong>Google / Gemini</strong><span>noch nicht eingerichtet</span></li>
+          <li><strong>Microsoft / Azure</strong><span>noch nicht eingerichtet</span></li>
+          <li><strong>Telegram</strong><span>noch nicht eingerichtet</span></li>
+          <li><strong>TON Wallet</strong><span>noch nicht eingerichtet</span></li>
+        </ul>
+      </section>
+
       <section class="panel connection">
         <div><h2>Private broker</h2><p>Backend-Adresse dieses Codespace eingeben. Keine Secrets im Browser speichern.</p></div>
         <label>API origin<input id="api-origin" type="url" placeholder="https://…-3000.app.github.dev" autocomplete="url"></label>
@@ -35,6 +57,11 @@
           <div class="section-title"><div><p class="eyebrow">SESSION</p><h2>Dashboard</h2></div><button id="logout" class="secondary" hidden>Abmelden</button></div>
           <p id="account-state" class="muted">Nicht angemeldet. Sitzungen bleiben nur im Arbeitsspeicher dieser Seite.</p>
           <dl id="account-details" hidden><dt>Benutzer</dt><dd id="account-name"></dd><dt>Token-Guthaben</dt><dd id="account-tokens"></dd></dl>
+          <div id="extension-controls" hidden>
+            <p class="muted">Ein Workspace-Worker pro Account. Er ist keine vollständige Sicherheits-Sandbox.</p>
+            <button id="create-extension" type="button" class="secondary">Workspace-Extension starten</button>
+            <p id="extension-message" class="message" role="status"></p>
+          </div>
         </section>
       </section>
 

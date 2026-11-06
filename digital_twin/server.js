@@ -2,6 +2,8 @@ const fs = require('node:fs');
 const { DatabaseSync } = require('node:sqlite');
 const { loadConfig } = require('./config/db.config');
 const { createApp } = require('./app');
+const { createExtensionService } = require('./services/extensionService');
+const { createTokenService } = require('./services/tokenService');
 
 function prepareDatabase(config) {
   const databaseFile = config.dbPath;
@@ -33,6 +35,11 @@ function prepareDatabase(config) {
       token_balance INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS tenant_workspaces (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      port INTEGER
+    );
+    UPDATE tenant_workspaces SET port = NULL;
   `);
   db.prepare(`
     INSERT OR IGNORE INTO users (username, password_hash, is_genesis, is_registered, genesis_locked, token_balance)
@@ -44,14 +51,26 @@ function prepareDatabase(config) {
 function start() {
   const config = loadConfig();
   const db = prepareDatabase(config);
-  const app = createApp({ db, config });
+  const tokens = createTokenService(db);
+  const extensions = createExtensionService({ db, workspaceRoot: config.workspaceRoot, tokens });
+  const app = createApp({ db, config, tokens, extensions });
   const server = app.listen(config.port, config.host, () => {
     console.log(`eAI private broker listening on ${config.host}:${config.port}`);
   });
-  const shutdown = () => server.close(() => {
-    db.close();
-    process.exit(0);
-  });
+  let stopping = false;
+  const shutdown = () => {
+    if (stopping) return;
+    stopping = true;
+    server.close(async () => {
+      try {
+        await extensions.close();
+        db.close();
+      } catch (error) {
+        console.error('Shutdown failed:', error);
+        process.exitCode = 1;
+      }
+    });
+  };
   process.once('SIGINT', shutdown);
   process.once('SIGTERM', shutdown);
   return { app, server, db };

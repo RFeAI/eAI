@@ -16,7 +16,9 @@ function createAuthService({ users, db, genesisPassword, jwtSecret }) {
   `);
 
   async function register(username, password, suppliedGenesisPassword) {
-    if (!USERNAME_PATTERN.test(username)) throw Object.assign(new Error('Invalid username.'), { status: 400 });
+    if (typeof username !== 'string' || !USERNAME_PATTERN.test(username)) {
+      throw Object.assign(new Error('Invalid username.'), { status: 400 });
+    }
     if (typeof password !== 'string' || password.length < 12 || password.length > 128) {
       throw Object.assign(new Error('Password must be between 12 and 128 characters.'), { status: 400 });
     }
