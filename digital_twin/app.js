@@ -5,6 +5,7 @@ const { rateLimit } = require('express-rate-limit');
 const { createUserModel } = require('./models/User');
 const { createAuthService, publicUser } = require('./services/authService');
 const { createRouterService } = require('./services/routerService');
+const { createWorkspaceService } = require('./services/workspaceService');
 
 function createApp({ db, config }) {
   const app = express();
@@ -16,6 +17,7 @@ function createApp({ db, config }) {
     jwtSecret: process.env.JWT_SECRET,
   });
   const router = createRouterService({ workspaceRoot: config.workspaceRoot });
+  const workspace = createWorkspaceService({ workspaceRoot: config.workspaceRoot });
 
   app.disable('x-powered-by');
   app.use(helmet());
@@ -24,7 +26,7 @@ function createApp({ db, config }) {
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   }));
-  app.use(express.json({ limit: '8kb', strict: true }));
+  app.use(express.json({ limit: '2mb', strict: true }));
 
   const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false });
   app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
@@ -62,7 +64,48 @@ function createApp({ db, config }) {
     if (!user) return res.status(401).json({ error: 'Account no longer exists.' });
     return res.json({ user: publicUser(user) });
   });
-  app.post('/api/terminal', async (req, res, next) => {
+  const workspaceLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: 'draft-7', legacyHeaders: false });
+  const terminalLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false });
+  app.get('/api/workspace/tree', workspaceLimit, async (req, res, next) => {
+    try {
+      res.json({ entries: await workspace.list(req.identity.sub, req.query.path || '') });
+    } catch (error) {
+      next(error);
+    }
+  });
+  app.get('/api/workspace/file', workspaceLimit, async (req, res, next) => {
+    try {
+      res.json({ content: await workspace.read(req.identity.sub, req.query.path) });
+    } catch (error) {
+      next(error);
+    }
+  });
+  app.post('/api/workspace/file', workspaceLimit, async (req, res, next) => {
+    try {
+      const { path: relativePath, content } = req.body || {};
+      await workspace.write(req.identity.sub, relativePath, content);
+      res.json({ saved: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+  app.post('/api/workspace/folder', workspaceLimit, async (req, res, next) => {
+    try {
+      await workspace.createFolder(req.identity.sub, req.body?.path);
+      res.status(201).json({ created: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+  app.post('/api/workspace/delete', workspaceLimit, async (req, res, next) => {
+    try {
+      await workspace.remove(req.identity.sub, req.body?.path);
+      res.json({ deleted: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+  app.post('/api/terminal', terminalLimit, async (req, res, next) => {
     try {
       const { systemType, command } = req.body || {};
       res.json({ output: await router.routeCommand(req.identity.sub, systemType, command) });
@@ -74,6 +117,7 @@ function createApp({ db, config }) {
   app.use((error, _req, res, _next) => {
     if (error.status) return res.status(error.status).json({ error: error.message });
     if (error.type === 'entity.parse.failed') return res.status(400).json({ error: 'Invalid JSON body.' });
+    if (error.type === 'entity.too.large') return res.status(413).json({ error: 'Request body is too large.' });
     console.error(error);
     return res.status(500).json({ error: 'Internal server error.' });
   });

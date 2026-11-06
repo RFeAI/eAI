@@ -1,8 +1,9 @@
 (() => {
   const $ = (selector) => document.querySelector(selector);
   const commands = {
-    git: ['git status --short', 'git log -5 --oneline'],
+    git: ['git --version'],
     dev: ['node --version', 'npm --version', 'python --version'],
+    windows: ['Windows/PowerShell nicht verfügbar'],
   };
   let token = null;
   let apiOrigin = '';
@@ -46,6 +47,9 @@
     $('#logout').hidden = false;
     $('#account-name').textContent = user.username;
     $('#account-tokens').textContent = String(user.tokenBalance);
+    $('#workspace-panel').hidden = false;
+    $('#terminal-form').hidden = false;
+    loadDirectory('').catch((error) => { $('#workspace-message').textContent = error.message; });
   }
 
   async function authenticate(mode) {
@@ -82,6 +86,8 @@
     $('#logout').hidden = true;
     $('#account-state').textContent = 'Abgemeldet. Sitzungen bleiben nur im Arbeitsspeicher dieser Seite.';
     $('#terminal-output').textContent = 'Warte auf Anmeldung…';
+    $('#workspace-panel').hidden = true;
+    $('#terminal-form').hidden = true;
   });
   $('#terminal-form').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -96,5 +102,105 @@
       $('#terminal-output').textContent = error.message;
     }
   });
+
+  let currentDirectory = '';
+  function joinPath(directory, name) {
+    return directory ? `${directory}/${name}` : name;
+  }
+  function updateDirectoryLabel() {
+    $('#workspace-path').textContent = currentDirectory ? `/${currentDirectory}` : '/';
+  }
+  async function loadDirectory(directory = currentDirectory) {
+    const result = await request(`/api/workspace/tree?path=${encodeURIComponent(directory)}`);
+    currentDirectory = directory;
+    updateDirectoryLabel();
+    const list = $('#file-list');
+    list.replaceChildren();
+    for (const entry of result.entries) {
+      const item = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'file-entry';
+      button.textContent = `${entry.type === 'directory' ? '▸ ' : '· '}${entry.name}`;
+      if (entry.type === 'directory') {
+        button.addEventListener('click', () => loadDirectory(entry.path).catch(showWorkspaceError));
+      } else if (entry.type === 'file') {
+        button.addEventListener('click', () => openFile(entry.path));
+      } else {
+        button.disabled = true;
+      }
+      item.append(button);
+      list.append(item);
+    }
+  }
+  async function openFile(filePath) {
+    $('#workspace-message').textContent = '';
+    try {
+      const result = await request(`/api/workspace/file?path=${encodeURIComponent(filePath)}`);
+      $('#editor-path').value = filePath;
+      $('#editor-content').value = result.content;
+      $('#workspace-message').textContent = 'Datei geladen.';
+    } catch (error) {
+      showWorkspaceError(error);
+    }
+  }
+  function showWorkspaceError(error) {
+    $('#workspace-message').textContent = error.message;
+  }
+  $('#refresh-files').addEventListener('click', () => loadDirectory().catch(showWorkspaceError));
+  $('#workspace-up').addEventListener('click', () => {
+    currentDirectory = currentDirectory.includes('/')
+      ? currentDirectory.slice(0, currentDirectory.lastIndexOf('/'))
+      : '';
+    loadDirectory().catch(showWorkspaceError);
+  });
+  $('#new-file').addEventListener('click', () => {
+    $('#editor-path').value = joinPath(currentDirectory, 'untitled.txt');
+    $('#editor-content').value = '';
+    $('#workspace-message').textContent = 'Dateipfad festlegen und speichern.';
+  });
+  $('#save-file').addEventListener('click', async () => {
+    try {
+      await request('/api/workspace/file', {
+        method: 'POST',
+        body: JSON.stringify({ path: $('#editor-path').value, content: $('#editor-content').value }),
+      });
+      $('#workspace-message').textContent = 'Datei gespeichert.';
+      const parent = $('#editor-path').value.includes('/')
+        ? $('#editor-path').value.slice(0, $('#editor-path').value.lastIndexOf('/'))
+        : '';
+      await loadDirectory(parent);
+    } catch (error) {
+      showWorkspaceError(error);
+    }
+  });
+  $('#delete-file').addEventListener('click', async () => {
+    const filePath = $('#editor-path').value;
+    if (!filePath || !window.confirm(`Datei oder leeren Ordner "${filePath}" löschen?`)) return;
+    try {
+      await request('/api/workspace/delete', { method: 'POST', body: JSON.stringify({ path: filePath }) });
+      $('#editor-path').value = '';
+      $('#editor-content').value = '';
+      $('#workspace-message').textContent = 'Datei oder leerer Ordner gelöscht.';
+      await loadDirectory(currentDirectory);
+    } catch (error) {
+      showWorkspaceError(error);
+    }
+  });
+  $('#folder-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+      await request('/api/workspace/folder', {
+        method: 'POST',
+        body: JSON.stringify({ path: joinPath(currentDirectory, $('#folder-name').value.trim()) }),
+      });
+      $('#folder-name').value = '';
+      $('#workspace-message').textContent = 'Ordner erstellt.';
+      await loadDirectory(currentDirectory);
+    } catch (error) {
+      showWorkspaceError(error);
+    }
+  });
   setCommands();
+  $('#terminal-form').hidden = true;
 })();

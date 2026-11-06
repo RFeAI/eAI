@@ -1,14 +1,16 @@
 # eAI
 
 eAI is a public browser UI with a separate, private Codespace API broker. The
-website is only a renderer: it never contains service credentials. This starter
-intentionally does **not** provide arbitrary shell access, Windows/PowerShell
-connectors, filesystem editing, Git writes, or an unrestricted LLM proxy.
+website is only a renderer: it never contains service credentials. File
+operations are confined to the authenticated user's workspace. The terminal is
+limited to fixed read-only version checks; arbitrary shell commands and
+Windows/PowerShell execution are not exposed because a Codespace still contains
+credentials and private data.
 
 ## Run in GitHub Codespaces
 
-1. Copy `.env.example` to `digital_twin/vault/.env` in the Codespace using the
-   editor. Set all five required secrets to unique values. Use at least 32 bytes
+1. Copy `.enc.example` to `digital_twin/vault/.env` in the Codespace using the
+   editor. Set the three required secrets to unique values. Use at least 32 bytes
    for `MASTER_ENCRYPTION_KEY` and `JWT_SECRET`, and at least 16 characters for
    `GENESIS_ADMIN_PASSWORD`. Keep the Codespace port private.
 2. In the terminal, run:
@@ -32,20 +34,31 @@ connectors, filesystem editing, Git writes, or an unrestricted LLM proxy.
    and a new account password. Other users can register with their own account
    passwords.
 
-For static GitHub Pages deployment, configure Pages to publish `website/` using
-GitHub Actions or a branch. Pages does not run the backend. GitHub Actions
+For static GitHub Pages deployment, publish the repository root; its `index.html`
+redirects to the renderer under `website/`. Pages does not run the backend. GitHub Actions
 secrets are not delivered to the browser or a Codespace; backend secrets belong
 only in the private Codespace vault. Never commit that vault.
 
 ## Current functionality
 
-The browser UI supports account registration/login, account display, and a
-small authenticated read-only terminal. The broker allows only `git --version`
-and fixed Node/npm/Python version checks. Commands run without a shell in a
-per-user workspace directory. This is a
-security-conscious foundation, not a fully featured multi-user IDE: repository
-management, token minting, extensions, Windows/PowerShell, and LLM connectors
-are not implemented.
+The browser UI supports account registration/login, account display, workspace
+file and folder operations, and a small authenticated terminal. Files are
+restricted to each user's private workspace; sensitive names and symlinks are
+rejected, files have a size limit, and folder deletion is non-recursive. The
+broker allows only fixed Git/Node/npm/Python version checks, without a shell.
+Windows and PowerShell selections show that they are unavailable in the Linux
+Codespace. Unrestricted command execution, repository mutation, token minting,
+extensions, and LLM proxying are not implemented.
+
+The public `.enc.example` is a placeholder template, not an encrypted secret
+file. The backend still reads the actual `.env` only from
+`digital_twin/vault/`; `.gitignore` excludes environment files, vault
+directories, and SQLite files. Check the Git diff before every public commit.
+The renderer calls the private Codespace backend (port 3000); filesystem and
+terminal actions do not run on GitHub Pages.
+
+GitHub and LLM service tokens are not used by this restricted implementation;
+do not supply them until a reviewed, scoped connector is added.
 
 The backend requires Node.js 22.5 or newer for the built-in SQLite module.
 
