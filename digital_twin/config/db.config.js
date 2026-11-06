@@ -7,7 +7,7 @@ const envPath = path.join(vaultDir, '.env');
 
 function loadConfig() {
   if (!fs.existsSync(envPath)) {
-    throw new Error(`Required secrets file is missing: ${envPath}. Copy .env.example to the vault and fill it in.`);
+    throw new Error(`Required secrets file is missing: ${envPath}. Copy .enc.example to the vault and fill it in.`);
   }
 
   const parsed = dotenv.parse(fs.readFileSync(envPath));
@@ -18,8 +18,6 @@ function loadConfig() {
   const required = [
     'MASTER_ENCRYPTION_KEY',
     'JWT_SECRET',
-    'GITHUB_SERVICE_TOKEN',
-    'LLM_API_KEY',
     'GENESIS_ADMIN_PASSWORD',
   ];
   const missing = required.filter((key) => !process.env[key]?.trim());

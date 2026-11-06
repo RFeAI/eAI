@@ -38,11 +38,38 @@
         </section>
       </section>
 
+      <section class="panel workspace" id="workspace-panel" hidden>
+        <div class="section-title">
+          <div><p class="eyebrow">ISOLATED USER DIRECTORY</p><h2>Workspace files</h2></div>
+          <button id="refresh-files" class="secondary" type="button">Aktualisieren</button>
+        </div>
+        <div class="workspace-layout">
+          <aside class="file-browser">
+            <div class="browser-path"><button id="workspace-up" class="secondary" type="button">↑</button><span id="workspace-path">/</span></div>
+            <ul id="file-list" aria-label="Workspace Dateien"></ul>
+            <form id="folder-form">
+              <label>Neuer Ordner<input id="folder-name" maxlength="64" required></label>
+              <button type="submit" class="secondary">Ordner erstellen</button>
+            </form>
+          </aside>
+          <section class="editor">
+            <label>Dateipfad<input id="editor-path" maxlength="512" placeholder="notes.txt" autocomplete="off"></label>
+            <textarea id="editor-content" spellcheck="false" aria-label="Dateiinhalt" placeholder="Textdatei auswählen oder neuen Dateipfad angeben…"></textarea>
+            <div class="actions">
+              <button id="new-file" class="secondary" type="button">Neue Datei</button>
+              <button id="save-file" type="button">Speichern</button>
+              <button id="delete-file" class="danger" type="button">Löschen</button>
+            </div>
+            <p id="workspace-message" class="message" role="status"></p>
+          </section>
+        </div>
+      </section>
+
       <section class="panel terminal">
         <div class="section-title"><div><p class="eyebrow">READ-ONLY CONNECTOR</p><h2>Terminal</h2></div><span class="badge">Restricted</span></div>
-        <p class="muted">Nur festgelegte, lesende Status- und Versionsabfragen sind verfügbar. Keine Shell, PowerShell oder Systemadministration.</p>
+        <p class="muted">Nur festgelegte Versionsabfragen sind verfügbar. Windows CMD/PowerShell werden in Codespaces nicht ausgeführt.</p>
         <form id="terminal-form">
-          <label>Zielsystem<select id="system-type"><option value="git">Git</option><option value="dev">Developer tools</option></select></label>
+          <label>Zielsystem<select id="system-type"><option value="git">Git</option><option value="dev">Developer tools</option><option value="windows">Windows / PowerShell (nicht verfügbar)</option></select></label>
           <label>Befehl<select id="command"></select></label>
           <button type="submit">Ausführen</button>
         </form>

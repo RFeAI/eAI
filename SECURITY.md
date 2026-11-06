@@ -4,6 +4,8 @@ This repository is public. Never commit real credentials, `digital_twin/vault/.e
 SQLite databases, private user data, or service tokens. The vault is ignored by
 Git; verify changes in the GitHub diff before publishing. If a secret is exposed,
 revoke it at its provider immediately and replace it.
+The tracked root `.enc.example` is a public placeholder template only; it must
+never contain a real or encrypted credential blob.
 
 ## Trust boundaries
 
@@ -15,11 +17,13 @@ private infrastructure; keep its forwarded port private and use HTTPS when
 accessing it remotely.
 
 The backend is a broker, not a general-purpose shell or remote administration
-server. It does not expose Windows, PowerShell, arbitrary shell, filesystem
-editing, Git mutations, network scanning, system administration, or arbitrary
-LLM proxy operations. Its terminal endpoint accepts only fixed, read-only
-Codespace status/version commands. Do not extend this endpoint to accept
-unvalidated commands or pass input to a shell.
+server. It does not expose Windows, PowerShell, arbitrary shell, Git mutations,
+network scanning, system administration, or arbitrary LLM proxy operations.
+Workspace file operations are limited to the authenticated user's isolated
+directory, reject symlinks and sensitive filenames, and cap text-file size.
+The terminal accepts only fixed, read-only version commands and never invokes a
+shell. Do not extend this endpoint to accept unvalidated commands or pass input
+to a shell.
 
 ## Genesis account
 
@@ -32,16 +36,17 @@ administrative migration, not through the public UI.
 
 ## Secrets and encryption
 
-`MASTER_ENCRYPTION_KEY`, `JWT_SECRET`, `GITHUB_SERVICE_TOKEN`, `LLM_API_KEY`,
-and `GENESIS_ADMIN_PASSWORD` are mandatory backend settings. Use unique,
-high-entropy values, restrict token scopes, and rotate exposed credentials.
+`MASTER_ENCRYPTION_KEY`, `JWT_SECRET`, and `GENESIS_ADMIN_PASSWORD` are mandatory
+backend settings. Use unique, high-entropy values and rotate exposed credentials.
 The encryption key is reserved for future encrypted connector credentials;
 this scaffold does not persist connector secrets. AES-256 requires a 32-byte
 key and authenticated encryption; do not implement custom cryptography.
 
 GitHub Actions secrets are for workflows and are not available to a static
-GitHub Pages client. Never inject backend secrets into a Pages build. Do not
-make the Codespace port public. Authentication uses short-lived bearer JWTs,
+GitHub Pages client. Never inject backend secrets into a Pages build. This
+implementation does not use GitHub/LLM service tokens; do not configure them
+until scoped connectors are reviewed. Do not make the Codespace port public.
+Authentication uses short-lived bearer JWTs,
 rate limits, password hashing, exact-origin CORS, and a private SQLite database.
 
 ## Reporting

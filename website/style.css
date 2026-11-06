@@ -36,7 +36,21 @@ dl { display: grid; gap: 12px; grid-template-columns: 1fr auto; margin: 28px 0 0
 dt { color: #8799b0; } dd { margin: 0; }
 .terminal { margin-bottom: 26px; }
 .terminal form { align-items: end; grid-template-columns: 1fr 2fr auto; }
+.workspace { margin-bottom: 18px; }
+.workspace-layout { display: grid; gap: 18px; grid-template-columns: minmax(220px, .7fr) minmax(0, 1.3fr); margin-top: 20px; }
+.file-browser, .editor { min-width: 0; }
+.browser-path { align-items: center; display: flex; gap: 10px; min-height: 40px; }
+.browser-path span { color: #8d9db3; font: .8rem ui-monospace, monospace; overflow-wrap: anywhere; }
+#file-list { background: #080d18; border: 1px solid #1e2b3c; border-radius: 9px; list-style: none; margin: 10px 0 16px; max-height: 340px; min-height: 110px; overflow: auto; padding: 8px; }
+#file-list li { margin: 2px 0; }
+.file-entry { background: transparent; color: #c3d2e5; font: .8rem ui-monospace, monospace; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+.file-entry:hover { background: #1b293b; }
+.file-entry:disabled { color: #65768c; cursor: not-allowed; }
+.editor textarea { background: #080d18; border: 1px solid #1e2b3c; border-radius: 9px; color: #cce0f8; display: block; font: .84rem/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; margin: 14px 0; min-height: 300px; padding: 14px; resize: vertical; width: 100%; }
+.editor textarea:focus { border-color: #5597f4; outline: none; }
+.danger { background: #682b36; }
+.danger:hover { background: #873744; }
 pre { background: #080d18; border: 1px solid #1e2b3c; border-radius: 9px; color: #a9d8bd; font: .83rem/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; margin: 18px 0 0; min-height: 110px; overflow: auto; padding: 16px; white-space: pre-wrap; }
 footer { color: #687b93; font-size: .74rem; text-align: center; }
 [hidden] { display: none !important; }
-@media (max-width: 720px) { .shell { padding: 28px 16px; } .grid { grid-template-columns: 1fr; } .connection { align-items: stretch; flex-direction: column; } .connection label { min-width: 0; } .terminal form { grid-template-columns: 1fr; } .topbar { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 720px) { .shell { padding: 28px 16px; } .grid { grid-template-columns: 1fr; } .workspace-layout { grid-template-columns: 1fr; } .connection { align-items: stretch; flex-direction: column; } .connection label { min-width: 0; } .terminal form { grid-template-columns: 1fr; } .topbar { align-items: flex-start; flex-direction: column; } }

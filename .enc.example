@@ -1,4 +1,5 @@
-# Copy to digital_twin/vault/.env in a private Codespace. Never commit that file.
+# Public template only. Copy to digital_twin/vault/.env in the private Codespace.
+# Fill the three required values there; integrations below are currently unused.
 MASTER_ENCRYPTION_KEY=
 JWT_SECRET=
 GITHUB_SERVICE_TOKEN=
@@ -10,5 +11,4 @@ PUBLIC_UI_ORIGIN=http://localhost:8080
 PORT=3000
 HOST=0.0.0.0
 WORKSPACE_ROOT=/tmp/eai-workspaces
-# Optional local, trusted SQLite backup used only when system.sqlite is missing:
 SYSTEM_DB_BACKUP_PATH=

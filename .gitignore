@@ -1,8 +1,9 @@
-# Secrets and local state
-digital_twin/vault/*
-!digital_twin/vault/.gitkeep
-digital_twin/.env
-.env
+# Secrets and local state (keep these rules broad because the repository is public)
+*.env
+*.env.*
+!.enc.example
+vault/
+**/vault/
 *.sqlite
 *.sqlite-*
 *.db
