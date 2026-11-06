@@ -25,6 +25,16 @@ The terminal accepts only fixed, read-only version commands and never invokes a
 shell. Do not extend this endpoint to accept unvalidated commands or pass input
 to a shell.
 
+Tenant workers bind only to `127.0.0.1`, use short-lived per-process internal
+credentials and do not inherit gateway secrets via environment variables.
+These controls prevent unauthenticated direct HTTP access but are not an OS
+sandbox: all worker processes share the gateway user's operating-system
+privileges. A malicious local process, untrusted extension code, or a compromised
+worker may access other tenants or gateway files. Do not expose this prototype
+as a security-isolated multi-tenant service. Use independently secured
+containers or VMs, least-privilege identities, resource/network isolation and
+an authenticated stable hosting endpoint before accepting untrusted workloads.
+
 ## Genesis account
 
 `GENESIS_ADMIN_PASSWORD` is required at startup and must be kept only in the

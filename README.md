@@ -47,8 +47,32 @@ restricted to each user's private workspace; sensitive names and symlinks are
 rejected, files have a size limit, and folder deletion is non-recursive. The
 broker allows only fixed Git/Node/npm/Python version checks, without a shell.
 Windows and PowerShell selections show that they are unavailable in the Linux
-Codespace. Unrestricted command execution, repository mutation, token minting,
-extensions, and LLM proxying are not implemented.
+Codespace. The dashboard can create one workspace extension per account: the
+gateway verifies the user's JWT and proxies existing workspace and terminal
+routes to that account's worker. Internal workers listen on randomly assigned
+loopback-only ports; stale ports are cleared at restart, and workers are
+restarted on demand. A worker is created with a stripped environment and an
+internal per-worker authentication key. A maximum of eight can be active at
+once, and workers stop when the gateway exits.
+
+The gateway adds ten tokens once when a workspace is created and after each
+successful supported terminal version command. The balance is stored in
+SQLite. `/api/chat` returns 402 when the balance is empty and otherwise 501:
+no LLM provider has been configured, no chat request is sent, and no tokens
+are charged. Repository creation, real Git mutations and unrestricted command
+execution are not implemented. The worker uses the same fixed allowlist as the
+default workspace; there is no user-editable command policy.
+
+**Isolation limit:** workers are ordinary Node processes running as the same
+operating-system user. They are not containers or security sandboxes, and other
+local processes with that user's privileges may access their files or secrets.
+Do not treat this implementation as a secure multi-tenant deployment. Use
+properly isolated container/VM workloads and separate identities before running
+untrusted extensions or shell commands. The gateway must remain private.
+
+Port 3000 is only the gateway's listening port. It does not create a permanent
+internet address or eliminate changing Codespace tunnel URLs. A stable URL
+requires separately managed hosting and authenticated network access.
 
 The public `.enc.example` is a placeholder template, not an encrypted secret
 file. The backend still reads the actual `.env` only from

@@ -41,6 +41,7 @@ test('Genesis account requires the secret and can be claimed only once', async (
 
 test('regular users can register and receive a short-lived authenticated session', async () => {
   const { db, service } = fixture();
+  await assert.rejects(service.register(undefined, 'long-user-password'), { status: 400 });
   await service.register('test-user', 'long-user-password');
   const session = await service.login('test-user', 'long-user-password');
   assert.equal(service.verifyToken(session.token).username, 'test-user');
